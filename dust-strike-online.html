@@ -52,7 +52,7 @@ canvas#g{display:block}.f{position:fixed;text-shadow:0 0 4px #000;font-weight:bo
   <div id="local-panel" class="m-box hidden">
     <button class="m-btn" id="btn-host-local">Создать сервер (Хост)</button>
     <div id="host-id-box" class="hidden" style="background:#1f2937;padding:8px;border-radius:6px;font-size:14px">
-      Ваш код комнаты: <br><b id="my-peer-id" style="color:#fbbf24;font-size:16px;user-select:all">генерация...</b>
+      Ваш код комнаты: <br><b id="my-room-id" style="color:#fbbf24;font-size:16px;user-select:all">генерация...</b>
     </div>
     <div class="join-row">
       <input type="text" id="join-id-input" placeholder="Вставьте код комнаты">
@@ -64,15 +64,15 @@ canvas#g{display:block}.f{position:fixed;text-shadow:0 0 4px #000;font-weight:bo
   <div id="public-panel" class="m-box hidden" style="width:360px">
     <div class="srv-item">
       <span>🇷🇺 RU Public #1 [Dust2]</span>
-      <button onclick="joinPublicRoom('dust-strike-pub-ru-1')">Играть</button>
+      <button onclick="joinSupabaseRoom('dust-strike-pub-ru-1', 'public')">Играть</button>
     </div>
     <div class="srv-item">
       <span>🇪🇺 EU Public #2 [Dust2]</span>
-      <button onclick="joinPublicRoom('dust-strike-pub-eu-2')">Играть</button>
+      <button onclick="joinSupabaseRoom('dust-strike-pub-eu-2', 'public')">Играть</button>
     </div>
     <div class="srv-item">
       <span>🔥 Deathmatch #3 [FFA]</span>
-      <button onclick="joinPublicRoom('dust-strike-pub-dm-3')">Играть</button>
+      <button onclick="joinSupabaseRoom('dust-strike-pub-dm-3', 'public')">Играть</button>
     </div>
     <button class="m-btn sec back-btn">Назад</button>
   </div>
@@ -85,10 +85,16 @@ canvas#g{display:block}.f{position:fixed;text-shadow:0 0 4px #000;font-weight:bo
 <button onclick="buy(3)">3. Бронежилет — $650</button><button onclick="buy(4)">4. Патроны — $250</button></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 'use strict';
 const $=i=>document.getElementById(i),R=THREE,V3=R.Vector3;
+
+// ---------- Конфигурация Supabase ----------
+const SUPABASE_URL = 'https://hbtlqpmgfifmwzpssryb.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_ydsb_aMGsT2eq1Q7NuBAxg_EIFSTspU';
+const sb = (typeof supabase !== 'undefined') ? supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+const myId = 'p_' + Math.random().toString(36).slice(2, 10);
 
 // ---------- Сцена ----------
 const sc=new R.Scene();sc.background=new R.Color(0x8fc7ef);sc.fog=new R.Fog(0x8fc7ef,70,150);
@@ -152,7 +158,7 @@ function sw(i){slot=i;cur=[prim,1,2][i];reloading=0;gm.forEach((g,k)=>g.visible=
 // ---------- Игрок и состояние ----------
 const P={x:0,y:0,z:-42,vy:0,yaw:0,pitch:0,hp:100,ar:0,money:3000,eye:1.65,onG:1,crouch:0,spd:0};
 let locked=0,buyOpen=0,pdead=0,ending=0,kills=0,rnd=1,stepT=0,hm=0,dmg=0;
-let gameMode='bots';
+let gameMode='bots',currentRoomName='';
 const score={ct:0,t:0},keys={};
 
 function msg(t,ms=2500){$('msg').textContent=t;setTimeout(()=>{if($('msg').textContent==t)$('msg').textContent=''},ms)}
@@ -224,18 +230,19 @@ function botUpd(b,dt){
    let df=Math.atan2(-tx,-tz)-b.ry;df=Math.atan2(Math.sin(df),Math.cos(df));b.ry+=df*Math.min(1,dt*6)}}
  b.g.position.set(b.x,0,b.z);b.g.rotation.y=b.ry}
 
-// ---------- Сетевой мультиплеер (PeerJS) ----------
-let peer=null;
-const conns={};
+// ---------- Сетевой мультиплеер (Supabase Realtime Broadcast + Presence) ----------
+let roomChannel=null;
 const remotePlayers={};
 const remoteParts=()=>gameMode!=='bots'?Object.values(remotePlayers).filter(p=>p.alive).flatMap(p=>p.parts):[];
 
-function netBroadcast(data){
- for(const id in conns)if(conns[id].open)conns[id].send(data);
+function netBroadcast(event, data){
+ if(roomChannel && gameMode!=='bots'){
+  roomChannel.send({type:'broadcast',event:event,payload:{id:myId,...data}});
+ }
 }
 
 function addRemotePlayer(id){
- if(remotePlayers[id])return;
+ if(id===myId || remotePlayers[id])return;
  const {g,parts}=createPlayerModel(0x2563eb);
  const rp={id,g,parts,x:0,y:0,z:38,ry:0,alive:1};
  parts.forEach(m=>{m.userData={remoteId:id,head:m.geometry.type==='SphereGeometry'}});
@@ -248,7 +255,6 @@ function removeRemotePlayer(id){
  if(!remotePlayers[id])return;
  sc.remove(remotePlayers[id].g);
  delete remotePlayers[id];
- delete conns[id];
  updateNetBadge();
 }
 
@@ -257,60 +263,87 @@ function updateNetBadge(){
  if(gameMode==='bots'){b.classList.add('hidden');return}
  b.classList.remove('hidden');
  const cnt=Object.keys(remotePlayers).length+1;
- b.textContent=`Онлайн (${gameMode==='local'?'Локальный':'Публичный'}) · Игроков: ${cnt}`;
+ const label=gameMode==='local'?`Комната: ${currentRoomName}`:'Публичный сервер';
+ b.textContent=`Онлайн (${label}) · Игроков: ${cnt}`;
 }
 
-function setupConn(conn){
- conns[conn.peer]=conn;
- conn.on('open',()=>{
-  addRemotePlayer(conn.peer);
-  kf('Игрок подключился');
-  conn.send({type:'peers',list:Object.keys(conns)});
+window.joinSupabaseRoom=function(roomName, modeType){
+ if(!sb){
+  $('menu-status').textContent='Ошибка: Supabase SDK не загружен';
+  return;
+ }
+ $('menu-status').textContent='Подключение к Supabase...';
+ currentRoomName=roomName;
+
+ if(roomChannel){
+  sb.removeChannel(roomChannel);
+  for(const id in remotePlayers)removeRemotePlayer(id);
+ }
+
+ roomChannel=sb.channel('room:'+roomName,{
+  config:{
+   broadcast:{self:false},
+   presence:{key:myId}
+  }
  });
- conn.on('data',d=>{
-  if(d.type==='peers'){
-   d.list.forEach(pid=>{if(pid!==peer.id&&!conns[pid])setupConn(peer.connect(pid))});
-  }else if(d.type==='state'){
-   addRemotePlayer(conn.peer);
-   const rp=remotePlayers[conn.peer];
-   rp.x=d.x;rp.y=d.y;rp.z=d.z;rp.ry=d.ry;rp.alive=d.alive;
-  }else if(d.type==='shoot'){
-   tracer(new V3(d.ox,d.oy,d.oz),new V3(d.ex,d.ey,d.ez),0xffaa33);
-   snd({f:2600,d:.18,v:.35});
-  }else if(d.type==='hit'&&d.target===peer.id){
-   hurt(d.dmg);
-   if(P.hp<=0)netBroadcast({type:'killed',killer:conn.peer});
-  }else if(d.type==='killed'&&d.killer===peer.id){
+
+ // Отслеживание входа и выхода игроков через Presence
+ roomChannel.on('presence',{event:'sync'},()=>{
+  const state=roomChannel.presenceState();
+  const activeIds=new Set(Object.keys(state));
+  for(const pid of activeIds){
+   if(pid!==myId && !remotePlayers[pid]){
+    addRemotePlayer(pid);
+    kf('Игрок вошел в комнату');
+   }
+  }
+  for(const pid in remotePlayers){
+   if(!activeIds.has(pid)){
+    removeRemotePlayer(pid);
+    kf('Игрок вышел');
+   }
+  }
+  updateNetBadge();
+ });
+
+ // Позиции игроков
+ roomChannel.on('broadcast',{event:'state'},({payload})=>{
+  addRemotePlayer(payload.id);
+  const rp=remotePlayers[payload.id];
+  rp.x=payload.x;rp.y=payload.y;rp.z=payload.z;rp.ry=payload.ry;rp.alive=payload.alive;
+ });
+
+ // Выстрелы
+ roomChannel.on('broadcast',{event:'shoot'},({payload})=>{
+  tracer(new V3(payload.ox,payload.oy,payload.oz),new V3(payload.ex,payload.ey,payload.ez),0xffaa33);
+  snd({f:2600,d:.18,v:.35});
+ });
+
+ // Получение урона
+ roomChannel.on('broadcast',{event:'hit'},({payload})=>{
+  if(payload.target===myId){
+   hurt(payload.dmg);
+   if(P.hp<=0)netBroadcast('killed',{killer:payload.id});
+  }
+ });
+
+ // Подтверждение убийства
+ roomChannel.on('broadcast',{event:'killed'},({payload})=>{
+  if(payload.killer===myId){
    P.money=Math.min(16000,P.money+300);kills++;score.ct++;
    kf('Вы ➜ Игрок  +$300');
   }
  });
- conn.on('close',()=>{kf('Игрок отключился');removeRemotePlayer(conn.peer)});
- conn.on('error',()=>removeRemotePlayer(conn.peer));
-}
 
-function initPeer(customId,onReady){
- if(typeof Peer==='undefined'){
-  $('menu-status').textContent='Библиотека сети не загрузилась (проверьте интернет)';
-  return;
- }
- if(peer)peer.destroy();
- peer=customId?new Peer(customId):new Peer();
- peer.on('open',id=>onReady(id));
- peer.on('connection',conn=>setupConn(conn));
- peer.on('error',err=>{
-  if(err.type==='unavailable-id'&&customId){
-   peer=new Peer();
-   peer.on('open',()=>{
-    const conn=peer.connect(customId);
-    setupConn(conn);
-    launchGame('public');
-   });
-  }else{
-   $('menu-status').textContent='Ошибка сети: '+err.type;
+ roomChannel.subscribe(async(status)=>{
+  if(status==='SUBSCRIBED'){
+   await roomChannel.track({online_at:new Date().toISOString()});
+   launchGame(modeType);
+  }else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'){
+   $('menu-status').textContent='Ошибка подключения к Supabase: '+status;
   }
  });
-}
+};
 
 function respawnOnline(){
  ending=0;pdead=0;
@@ -325,7 +358,8 @@ function launchGame(mode){
  gameMode=mode;
  bots.forEach(b=>b.g.visible=(mode==='bots'));
  if(mode==='bots'){
-  Object.values(remotePlayers).forEach(rp=>sc.remove(rp.g));
+  if(roomChannel){sb.removeChannel(roomChannel);roomChannel=null;}
+  for(const id in remotePlayers)removeRemotePlayer(id);
   startRound();
  }else{
   respawnOnline();
@@ -341,39 +375,27 @@ $('btn-bots').onclick=()=>launchGame('bots');
 $('btn-local').onclick=()=>{
  $('main-btns').classList.add('hidden');
  $('local-panel').classList.remove('hidden');
- $('menu-status').textContent='Локальный сервер (P2P)';
+ $('menu-status').textContent='Локальная комната (Supabase)';
 };
 
 $('btn-host-local').onclick=()=>{
+ const code=Math.random().toString(36).substring(2,8).toUpperCase();
  $('host-id-box').classList.remove('hidden');
- $('my-peer-id').textContent='подключение...';
- initPeer(null,id=>{
-  $('my-peer-id').textContent=id;
-  $('menu-status').textContent='Сервер создан! Код: '+id;
-  setTimeout(()=>launchGame('local'),800);
- });
+ $('my-room-id').textContent=code;
+ $('menu-status').textContent='Создание комнаты '+code+'...';
+ joinSupabaseRoom('local-'+code,'local');
 };
 
 $('btn-join-local').onclick=()=>{
- const targetId=$('join-id-input').value.trim();
- if(!targetId)return;
- $('menu-status').textContent='Подключение к '+targetId+'...';
- initPeer(null,()=>{
-  const conn=peer.connect(targetId);
-  setupConn(conn);
-  launchGame('local');
- });
+ const code=$('join-id-input').value.trim().toUpperCase();
+ if(!code)return;
+ joinSupabaseRoom('local-'+code,'local');
 };
 
 $('btn-public').onclick=()=>{
  $('main-btns').classList.add('hidden');
  $('public-panel').classList.remove('hidden');
  $('menu-status').textContent='Публичные сервера';
-};
-
-window.joinPublicRoom=function(roomId){
- $('menu-status').textContent='Вход на сервер...';
- initPeer(roomId,()=>launchGame('public'));
 };
 
 document.querySelectorAll('.back-btn').forEach(btn=>btn.onclick=()=>{
@@ -390,7 +412,7 @@ function hitBot(b,head,w){if(!b.alive)return;b.hp-=head?w.h:w.d;b.alert=3;b.reac
 function hitRemote(remoteId,head,w){
  const dmgVal=head?w.h:w.d;
  tone(head?1600:900,.09,.25);hm=.15;$('hit').style.borderColor=head?'#f33':'#fff';
- netBroadcast({type:'hit',target:remoteId,dmg:dmgVal,head});
+ netBroadcast('hit',{target:remoteId,dmg:dmgVal,head});
 }
 
 function shoot(){
@@ -411,7 +433,7 @@ function shoot(){
  const h=rcast.intersectObjects(solids.concat(targets),false)[0];
  const mp=gun.localToWorld(new V3(0,.02,mz[cur])),end=h?h.point:cam.position.clone().addScaledVector(d,100);
  tracer(mp,end,0xffee88);
- if(gameMode!=='bots')netBroadcast({type:'shoot',ox:mp.x,oy:mp.y,oz:mp.z,ex:end.x,ey:end.y,ez:end.z});
+ if(gameMode!=='bots')netBroadcast('shoot',{ox:mp.x,oy:mp.y,oz:mp.z,ex:end.x,ey:end.y,ez:end.z});
  if(h){
   if(h.object.userData.bot)hitBot(h.object.userData.bot,h.object.userData.head,w);
   else if(h.object.userData.remoteId)hitRemote(h.object.userData.remoteId,h.object.userData.head,w);
@@ -490,7 +512,7 @@ function loop(){requestAnimationFrame(loop);const now=performance.now(),dt=Math.
   netTimer+=dt;
   if(netTimer>0.033){
    netTimer=0;
-   netBroadcast({type:'state',x:P.x,y:P.y,z:P.z,ry:P.yaw,alive:!pdead});
+   netBroadcast('state',{x:P.x,y:P.y,z:P.z,ry:P.yaw,alive:!pdead});
   }
  }
  kick*=Math.pow(.0005,dt);bob+=dt*P.spd*1.6;
