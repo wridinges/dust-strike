@@ -700,10 +700,6 @@ function buy(n){const c=[0,2700,4750,650,250,5000][n];if(P.money<c){tone(150,.2,
  if(n==1){prim=0;ammo[0]=30;res[0]=90}if(n==2){prim=3;ammo[3]=5;res[3]=20}if(n==5){prim=4;ammo[4]=150;res[4]=300}if(n==3)P.ar=100;if(n==4){res[0]+=60;res[1]+=24;res[3]+=10;res[4]+=150}
  sw(slot);$('bm').textContent='Деньги: $'+P.money}
 
-// ---------- Раунды (для ботов) ----------
-function startRound(){ending=0;pdead=0;Object.assign(P,{x:PS[0]+(Math.random()-.5)*8,z:PS[1],y:0,vy:0,hp:100,yaw:Math.PI,pitch:0});ammo[0]=30;ammo[1]=12;ammo[3]=5;
- bots.forEach((b,i)=>{b.alive=1;b.hp=100;b.alert=0;b.react=0;b.x=SP[i][0];b.z=SP[i][1];b.wp=Math.random()*WP.length|0;b.g.rotation.x=0});msg('Раунд '+rnd)}
-
 // ---------- Ввод ----------
 document.addEventListener('pointerlockchange',()=>{
  if(isTouch)return;
