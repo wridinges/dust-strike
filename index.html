@@ -62,6 +62,21 @@ body.touch #kf{top:60px;font-size:12px}
 body.touch #score{font-size:13px;padding:4px 8px;white-space:nowrap}
 body.touch #menu h1{font-size:36px}
 body.touch #buy button{width:300px;padding:8px;margin:3px;font-size:16px}
+.m-btn.sec.act{background:#d97724;border:1px solid #f5b942}
+#map-row .m-btn{flex:1}
+#set{position:fixed;inset:0;z-index:60;background:#000d;display:flex;align-items:center;justify-content:center;padding:10px}
+.set-box{width:min(420px,96vw);max-height:96vh;overflow-y:auto;background:#1f2937;border:1px solid #374151;border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.set-box h2{text-align:center;color:#f5b942}.set-box h3{font-size:15px;margin-bottom:4px}
+.set-box label{display:flex;justify-content:space-between;font-size:15px;margin-bottom:4px}.set-box input[type=range]{width:100%}
+.bind-row{display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-size:14px}
+.bind-row button{min-width:130px;padding:6px;background:#374151;color:#fff;border:1px solid #6b7280;border-radius:5px;cursor:pointer}
+.tcset{display:none}body.touch .tcset{display:block}body.touch .kbset{display:none}
+#t-set{right:110px;top:8px;width:44px;height:44px}
+body.editing #tc{display:block}body.editing #look{display:none}
+body.editing #menu,body.editing #set,body.editing #buy{display:none!important}
+body.editing .tb,body.editing #joy{outline:2px dashed #f5b942}
+#editbar{display:none;position:fixed;top:60px;left:50%;transform:translateX(-50%);z-index:80;gap:8px;align-items:center;background:#000d;padding:6px 10px;border-radius:8px;font-size:13px}
+body.editing #editbar{display:flex}#editbar button{padding:6px 12px;border:0;border-radius:5px;background:#d97724;color:#fff;font-weight:bold}
 </style></head><body>
 <canvas id="g"></canvas><div id="scope"></div><div id="dm"></div>
 <canvas id="radar" class="f" width="140" height="140"></canvas>
@@ -80,6 +95,7 @@ body.touch #buy button{width:300px;padding:8px;margin:3px;font-size:16px}
   <div class="tb" id="t-crouch">Сесть</div>
   <div class="tb" id="t-wpn">🔫</div>
   <div class="tb" id="t-buy">$</div>
+  <div class="tb" id="t-set">⚙</div>
 </div>
 
 <div id="menu">
@@ -87,9 +103,12 @@ body.touch #buy button{width:300px;padding:8px;margin:3px;font-size:16px}
   <p id="menu-status" style="font-size:18px;color:#9ca3af">Выберите режим игры</p>
 
   <div id="main-btns" class="m-box">
+    <p style="font-size:13px;color:#9ca3af;margin-bottom:-4px">Карта (боты и свой сервер)</p>
+    <div class="join-row" id="map-row"><button class="m-btn sec" data-map="dust">Dust</button><button class="m-btn sec" data-map="cobble">Cobblestone</button></div>
     <button class="m-btn" id="btn-bots">Игра с ботами</button>
     <button class="m-btn" id="btn-local">Локальный сервер</button>
     <button class="m-btn" id="btn-public">Публичные сервера</button>
+    <button class="m-btn sec" id="btn-settings">⚙ Настройки</button>
   </div>
 
   <div id="local-panel" class="m-box hidden">
@@ -114,7 +133,7 @@ body.touch #buy button{width:300px;padding:8px;margin:3px;font-size:16px}
       <button onclick="joinSupabaseRoom('dust-strike-pub-eu-2', 'public')">Играть</button>
     </div>
     <div class="srv-item">
-      <span>🔥 Deathmatch #3 [FFA]</span>
+      <span>🔥 Deathmatch #3 [Cobblestone]</span>
       <button onclick="joinSupabaseRoom('dust-strike-pub-dm-3', 'public')">Играть</button>
     </div>
     <button class="m-btn sec back-btn">Назад</button>
@@ -124,6 +143,15 @@ body.touch #buy button{width:300px;padding:8px;margin:3px;font-size:16px}
   <p class="kb-hint" style="margin-top:10px;opacity:.75;font-size:14px">WASD — движение · Space — прыжок · Shift — шаг · Ctrl/C — присесть<br>ЛКМ — огонь · ПКМ — прицел · R — перезарядка · 1/2/3 — оружие · B — магазин</p>
 </div>
 
+<div id="set" class="hidden"><div class="set-box">
+ <h2>Настройки</h2>
+ <div class="kbset"><label><span>Чувствительность мыши</span><b id="v-mouse"></b></label><input type="range" id="r-mouse" min="0.3" max="3" step="0.05"></div>
+ <div class="tcset"><label><span>Чувствительность обзора</span><b id="v-touch"></b></label><input type="range" id="r-touch" min="0.3" max="3" step="0.05"></div>
+ <div class="kbset"><h3>Клавиши (нажмите на кнопку и затем на нужную клавишу)</h3><div id="bind-list"></div><button class="m-btn sec" id="bind-reset" style="margin-top:8px">Сбросить клавиши</button></div>
+ <div class="tcset"><button class="m-btn sec" id="btn-edit-layout">Расположение кнопок</button></div>
+ <button class="m-btn" id="set-close">Готово</button>
+</div></div>
+<div id="editbar"><span>Перетаскивайте кнопки</span><button id="ed-reset">Сброс</button><button id="ed-done">Готово</button></div>
 <div id="buy"><h2>Магазин (B — закрыть)</h2><p id="bm" style="margin:8px;font-size:22px;color:#8f8"></p>
 <button onclick="buy(1)">1. AK-47 — $2700</button><button onclick="buy(2)">2. AWP — $4750</button>
 <button onclick="buy(3)">3. Бронежилет — $650</button><button onclick="buy(4)">4. Патроны — $250</button><button onclick="toggleBuy()">Закрыть</button></div>
@@ -156,14 +184,19 @@ const sandT=tex(256,(x,w)=>{x.fillStyle='#d9bf8c';x.fillRect(0,0,w,w);grain(x,w,
 const brickT=tex(256,(x,w)=>{x.fillStyle='#bd9d6e';x.fillRect(0,0,w,w);x.strokeStyle='#8f7448';x.lineWidth=3;for(let r=0;r<8;r++){x.beginPath();x.moveTo(0,r*32);x.lineTo(w,r*32);x.stroke();for(let c=(r%2)*32;c<w;c+=64){x.beginPath();x.moveTo(c,r*32);x.lineTo(c,r*32+32);x.stroke()}}grain(x,w,1500,['#c9aa7a','#a98a5c'],3)},1);
 const crateT=tex(128,(x,w)=>{x.fillStyle='#8a5a2b';x.fillRect(0,0,w,w);for(let i=0;i<w;i+=16){x.fillStyle=i%32?'#7a4d22':'#94622f';x.fillRect(0,i,w,15)}x.strokeStyle='#4d2f14';x.lineWidth=8;x.strokeRect(4,4,w-8,w-8);x.beginPath();x.moveTo(0,0);x.lineTo(w,w);x.stroke()},1);
 const crateM=new R.MeshLambertMaterial({map:crateT});
+const stoneT=tex(256,(x,w)=>{x.fillStyle='#55524d';x.fillRect(0,0,w,w);for(let r=0;r<8;r++){let c=-(r%2)*20;while(c<w){const bw=40+Math.random()*40,g=120+Math.random()*40|0;x.fillStyle=`rgb(${g},${g-4},${g-10})`;x.fillRect(c+1.5,r*32+1.5,bw-3,29);c+=bw}}grain(x,w,1800,['#9a978f','#5a5852'],2)},1);
+const cobGroundT=tex(256,(x,w)=>{x.fillStyle='#4f4d49';x.fillRect(0,0,w,w);for(let i=0;i<90;i++){const g=100+Math.random()*50|0;x.fillStyle=`rgb(${g},${g-3},${g-8})`;x.beginPath();x.ellipse(Math.random()*w,Math.random()*w,9+Math.random()*7,7+Math.random()*5,Math.random()*3,0,7);x.fill()}},40);
 
 // ---------- Карта ----------
 const solids=[],cols=[];
-function box(x1,z1,x2,z2,y1,y2,mat){const w=x2-x1,d=z2-z1,h=y2-y1,m=new R.Mesh(new R.BoxGeometry(w,h,d),mat);m.position.set(x1+w/2,y1+h/2,z1+d/2);m.castShadow=m.receiveShadow=true;sc.add(m);solids.push(m);cols.push({x1,x2,z1,z2,y1,y2})}
-function wall(x1,z1,x2,z2,h=6,y=0){const t=brickT.clone();t.needsUpdate=true;t.repeat.set(Math.max(x2-x1,z2-z1)/4,h/4);box(x1,z1,x2,z2,y,y+h,new R.MeshLambertMaterial({map:t,color:0xfff0d8}))}
+const mapObjs=[];let wallTex=brickT,wallTint=0xfff0d8;
+function mkFloor(t){const f=new R.Mesh(new R.PlaneGeometry(100,100),new R.MeshLambertMaterial({map:t}));f.rotation.x=-Math.PI/2;f.receiveShadow=true;sc.add(f);solids.push(f);mapObjs.push(f)}
+function box(x1,z1,x2,z2,y1,y2,mat){const w=x2-x1,d=z2-z1,h=y2-y1,m=new R.Mesh(new R.BoxGeometry(w,h,d),mat);m.position.set(x1+w/2,y1+h/2,z1+d/2);m.castShadow=m.receiveShadow=true;sc.add(m);mapObjs.push(m);solids.push(m);cols.push({x1,x2,z1,z2,y1,y2})}
+function wall(x1,z1,x2,z2,h=6,y=0){const t=wallTex.clone();t.needsUpdate=true;t.repeat.set(Math.max(x2-x1,z2-z1)/4,h/4);box(x1,z1,x2,z2,y,y+h,new R.MeshLambertMaterial({map:t,color:wallTint}))}
 function crate(x,z,lv=0,s=1.5){box(x-s/2,z-s/2,x+s/2,z+s/2,lv*s,lv*s+s,crateM)}
-function label(t,x,z){const c=document.createElement('canvas');c.width=c.height=128;const g=c.getContext('2d');g.fillStyle='rgba(200,40,30,.85)';g.font='bold 100px Arial';g.textAlign='center';g.fillText(t,64,100);const m=new R.Mesh(new R.PlaneGeometry(8,8),new R.MeshBasicMaterial({map:new R.CanvasTexture(c),transparent:true,depthWrite:false}));m.rotation.x=-Math.PI/2;m.position.set(x,.03,z);sc.add(m)}
-const floor=new R.Mesh(new R.PlaneGeometry(100,100),new R.MeshLambertMaterial({map:sandT}));floor.rotation.x=-Math.PI/2;floor.receiveShadow=true;sc.add(floor);solids.push(floor);
+function label(t,x,z){const c=document.createElement('canvas');c.width=c.height=128;const g=c.getContext('2d');g.fillStyle='rgba(200,40,30,.85)';g.font='bold 100px Arial';g.textAlign='center';g.fillText(t,64,100);const m=new R.Mesh(new R.PlaneGeometry(8,8),new R.MeshBasicMaterial({map:new R.CanvasTexture(c),transparent:true,depthWrite:false}));m.rotation.x=-Math.PI/2;m.position.set(x,.03,z);sc.add(m);mapObjs.push(m)}
+function mapDust(){
+mkFloor(sandT);
 wall(-50,-50,50,-49);wall(-50,49,50,50);wall(-50,-49,-49,49);wall(49,-49,50,49);
 wall(-7,-26,-6,-8);wall(-7,-4,-6,26);wall(-7,-8,-6,-4,2,4);
 wall(6,-26,7,-8);wall(6,-4,7,26);wall(6,-8,7,-4,2,4);
@@ -173,6 +206,38 @@ wall(7,-26,30,-25);wall(-24,-49,-23,-36);wall(18,-49,19,-36);
 wall(-40,2,-39,22);box(-49,2,-40,22,3.5,4.5,new R.MeshLambertMaterial({color:0xcdb07a}));wall(25,0,26,16,3);wall(-20,30,-19,40,4);wall(20,30,21,40,4);
 [[30,-38],[32,-38],[32,-38,1],[40,-32],[24,-44],[45,-40],[-30,-40],[-32,-40],[-32,-40,1],[-44,-34],[-28,-45],[0,-40],[10,-35],[-12,-35],[-20,5],[-25,15],[30,10],[38,20],[4,-20],[-4,-18],[0,30],[-30,38],[30,25],[-44,-12]].forEach(a=>crate(...a));
 label('A',34,-42);label('B',-34,-42);
+}
+
+function mapCobble(){
+ mkFloor(cobGroundT);
+ wall(-50,-50,50,-49,7);wall(-50,49,50,50,7);wall(-50,-49,-49,49,7);wall(49,-49,50,49,7);
+ wall(-14,-14,-4,-13);wall(4,-14,14,-13);wall(-4,-14,4,-13,2,4);
+ wall(-14,13,-4,14);wall(4,13,14,14);wall(-4,13,4,14,2,4);
+ wall(-14,-13,-13,-3);wall(-14,3,-13,13);wall(-14,-3,-13,3,2,4);
+ wall(13,-13,14,-3);wall(13,3,14,13);wall(13,-3,14,3,2,4);
+ [[-16,-16],[12,-16],[-16,12],[12,12]].forEach(([x,z])=>wall(x,z,x+4,z+4,9));
+ wall(-2.5,-2.5,2.5,2.5,1.2);
+ wall(-30,-40,-29,-20);wall(29,-40,30,-20);wall(-30,20,-29,40);wall(29,20,30,40);
+ wall(-49,-8,-38,-7,4);wall(38,7,49,8,4);wall(-24,-24,-18,-23,3);wall(18,23,24,24,3);
+ wall(32,-46,46,-34,1.5);wall(30,-41,32,-37,.75);
+ wall(-46,34,-32,46,1.5);wall(-32,37,-30,41,.75);
+ [[40,-40,1],[36,-44,1],[44,-38,1],[-40,40,1],[-36,36,1],[-44,42,1],
+  [-20,-30],[20,-30],[-20,30],[20,30],[-38,-20],[38,20],[8,-30],[-8,28],[-24,-10],[24,10],[-6,-24],[6,24],[-20,-30,1],[20,30,1],[9,9],[-9,-9],[-9,9]].forEach(a=>crate(...a));
+ label('A',38,-30);label('B',-38,30);
+}
+const MAPS={
+ dust:{sky:0x8fc7ef,ps:[0,-42],build:mapDust,
+  WP:[[0,38],[-25,36],[30,36],[0,15],[0,-5],[-20,10],[-44,12],[-44,-10],[-35,-38],[35,-38],[40,-10],[20,5],[0,-35],[-15,-38]],
+  SP:[[0,40],[-20,38],[30,38],[10,15],[-44,12]]},
+ cobble:{sky:0xa9bccd,ps:[0,-42],build:mapCobble,
+  WP:[[0,-40],[-20,-40],[20,-40],[0,-20],[0,-8],[0,8],[0,20],[-20,-20],[20,-20],[-20,20],[20,20],[0,40],[-20,40],[20,40],[-40,-30],[40,-28],[-40,30],[-24,0],[24,0],[40,30]],
+  SP:[[0,42],[-20,42],[20,42],[-8,32],[8,32]]}};
+let curMap='';
+function loadMap(n){if(curMap===n)return;curMap=n;mapObjs.forEach(m=>sc.remove(m));mapObjs.length=0;solids.length=0;cols.length=0;
+ const M=MAPS[n];wallTex=n==='cobble'?stoneT:brickT;wallTint=n==='cobble'?0xdddddd:0xfff0d8;
+ sc.background=new R.Color(M.sky);sc.fog=new R.Fog(M.sky,70,150);M.build();SP=M.SP;WP=M.WP;PS=M.ps}
+const mapForRoom=n=>n.startsWith('local-')?(n[6]==='C'?'cobble':'dust'):(n.includes('dm-3')?'cobble':'dust');
+
 
 // ---------- Коллизии ----------
 function blocked(x,z,y,r,h){for(const c of cols)if(x+r>c.x1&&x-r<c.x2&&z+r>c.z1&&z-r<c.z2&&y<c.y2-.05&&y+h>c.y1)return 1;return 0}
@@ -204,17 +269,25 @@ const P={x:0,y:0,z:-42,vy:0,yaw:0,pitch:0,hp:100,ar:0,money:3000,eye:1.65,onG:1,
 let locked=0,buyOpen=0,pdead=0,ending=0,kills=0,rnd=1,stepT=0,hm=0,dmg=0;
 let gameMode='bots',currentRoomName='';
 const score={ct:0,t:0},keys={};
+let CFG={};try{CFG=JSON.parse(localStorage.getItem('dsCfg'))||{}}catch(e){}
+const BIND_DEF={fwd:'KeyW',back:'KeyS',left:'KeyA',right:'KeyD',jump:'Space',walk:'ShiftLeft',crouch:'KeyC',reload:'KeyR',buy:'KeyB',w1:'Digit1',w2:'Digit2',w3:'Digit3'};
+const BIND_NAMES={fwd:'Вперёд',back:'Назад',left:'Влево',right:'Вправо',jump:'Прыжок',walk:'Медленный шаг',crouch:'Присесть',reload:'Перезарядка',buy:'Магазин',w1:'Оружие 1',w2:'Оружие 2',w3:'Оружие 3'};
+const bind=Object.assign({},BIND_DEF,CFG.bind),sens={mouse:CFG.mouse||1,touch:CFG.touch||1},tpos=CFG.tpos||{};
+let selMap=MAPS_OK(CFG.map)?CFG.map:'dust';
+function MAPS_OK(m){return m==='dust'||m==='cobble'}
+function cfgSave(){try{localStorage.setItem('dsCfg',JSON.stringify({bind,mouse:sens.mouse,touch:sens.touch,tpos,map:selMap}))}catch(e){}}
+const kd=a=>keys[bind[a]];
 
 function msg(t,ms=2500){$('msg').textContent=t;setTimeout(()=>{if($('msg').textContent==t)$('msg').textContent=''},ms)}
 function kf(t){const d=document.createElement('div');d.textContent=t;$('kf').prepend(d);setTimeout(()=>d.remove(),5000)}
 function moveP(dt){
- const k=keys,f=Math.max(-1,Math.min(1,(k.KeyW?1:0)-(k.KeyS?1:0)+joy.y)),s=Math.max(-1,Math.min(1,(k.KeyD?1:0)-(k.KeyA?1:0)+joy.x)),walk=k.ShiftLeft||k.ShiftRight;
- P.crouch=!!(k.ControlLeft||k.ControlRight||k.KeyC);
+ const k=keys,f=Math.max(-1,Math.min(1,(kd('fwd')?1:0)-(kd('back')?1:0)+joy.y)),s=Math.max(-1,Math.min(1,(kd('right')?1:0)-(kd('left')?1:0)+joy.x)),walk=kd('walk');
+ P.crouch=!!(kd('crouch')||k.__crouch);
  const sp=(P.crouch?2.2:walk?3.2:6)*(cur==2?1.18:1)*(cur==3&&aim?.6:1),l=Math.max(1,Math.hypot(f,s)),sn=Math.sin(P.yaw),cs=Math.cos(P.yaw);
  const vx=(-sn*f+cs*s)/l*sp,vz=(-cs*f-sn*s)/l*sp,h=P.crouch?1.1:1.8;
  const nx=P.x+vx*dt;if(!blocked(nx,P.z,P.y,.4,h))P.x=nx;const nz=P.z+vz*dt;if(!blocked(P.x,nz,P.y,.4,h))P.z=nz;
  P.spd=(f||s)?sp:0;
- if(k.Space&&P.onG){P.vy=9;P.onG=0}
+ if((kd('jump')||k.__jump)&&P.onG){P.vy=9;P.onG=0}
  P.vy-=22*dt;let ny=P.y+P.vy*dt;const g=ground(P.x,P.z,P.y,.4);
  if(ny<=g){ny=g;P.vy=0;P.onG=1}else P.onG=0;P.y=ny;
  P.eye+=((P.crouch?1.2:1.65)-P.eye)*Math.min(1,dt*12);
@@ -242,8 +315,8 @@ function createPlayerModel(bodyColor){
 }
 
 // ---------- Боты ----------
-const WP=[[0,38],[-25,36],[30,36],[0,15],[0,-5],[-20,10],[-44,12],[-44,-10],[-35,-38],[35,-38],[40,-10],[20,5],[0,-35],[-15,-38]];
-const SP=[[0,40],[-20,38],[30,38],[10,15],[-44,12]],bots=[],rcast=new R.Raycaster();
+let WP,SP,PS;
+const bots=[],rcast=new R.Raycaster();
 function mkBot(){
  const {g,parts}=createPlayerModel(0x55503a);
  const b={g,parts,x:0,z:0,ry:0,hp:100,alive:1,wp:0,alert:0,react:0,cd:0};
@@ -400,6 +473,7 @@ function respawnOnline(){
 // ---------- Управление меню ----------
 function launchGame(mode){
  gameMode=mode;
+ loadMap(mode==='bots'?selMap:mapForRoom(currentRoomName));
  bots.forEach(b=>b.g.visible=(mode==='bots'));
  if(mode==='bots'){
   if(roomChannel){sb.removeChannel(roomChannel);roomChannel=null;}
@@ -424,7 +498,7 @@ $('btn-local').onclick=()=>{
 };
 
 $('btn-host-local').onclick=()=>{
- const code=Math.random().toString(36).substring(2,8).toUpperCase();
+ const code=(selMap==='cobble'?'C':'D')+Math.random().toString(36).substring(2,7).toUpperCase();
  $('host-id-box').classList.remove('hidden');
  $('my-room-id').textContent=code;
  $('menu-status').textContent='Создание комнаты '+code+'...';
@@ -496,7 +570,7 @@ function buy(n){const c=[0,2700,4750,650,250][n];if(P.money<c){tone(150,.2,.3,'s
  sw(slot);$('bm').textContent='Деньги: $'+P.money}
 
 // ---------- Раунды (для ботов) ----------
-function startRound(){ending=0;pdead=0;Object.assign(P,{x:(Math.random()-.5)*8,z:-42,y:0,vy:0,hp:100,yaw:0,pitch:0});ammo[0]=30;ammo[1]=12;ammo[3]=5;
+function startRound(){ending=0;pdead=0;Object.assign(P,{x:PS[0]+(Math.random()-.5)*8,z:PS[1],y:0,vy:0,hp:100,yaw:Math.PI,pitch:0});ammo[0]=30;ammo[1]=12;ammo[3]=5;
  bots.forEach((b,i)=>{b.alive=1;b.hp=100;b.alert=0;b.react=0;b.x=SP[i][0];b.z=SP[i][1];b.wp=Math.random()*WP.length|0;b.g.rotation.x=0});msg('Раунд '+rnd)}
 
 // ---------- Ввод ----------
@@ -505,15 +579,16 @@ document.addEventListener('pointerlockchange',()=>{
  locked=document.pointerLockElement===document.body;
  $('menu').style.display=(locked||buyOpen)?'none':'flex';
 });
-addEventListener('mousemove',e=>{if(!locked||pdead)return;const s=.0022*(cur==3&&aim?.35:1);P.yaw-=e.movementX*s;P.pitch=Math.max(-1.5,Math.min(1.5,P.pitch-e.movementY*s))});
+addEventListener('mousemove',e=>{if(!locked||pdead)return;const s=.0022*sens.mouse*(cur==3&&aim?.35:1);P.yaw-=e.movementX*s;P.pitch=Math.max(-1.5,Math.min(1.5,P.pitch-e.movementY*s))});
 addEventListener('mousedown',e=>{if(!locked)return;if(e.button==0){mouseL=1;if(!W[cur].auto)shoot()}if(e.button==2)aim=1});
 addEventListener('mouseup',e=>{if(e.button==0)mouseL=0;if(e.button==2)aim=0});
 addEventListener('contextmenu',e=>e.preventDefault());
 addEventListener('wheel',e=>{if(locked)sw((slot+(e.deltaY>0?1:2))%3)});
-addEventListener('keydown',e=>{keys[e.code]=1;if(['Space','ControlLeft'].includes(e.code))e.preventDefault();
- if(e.code=='KeyB'&&!e.repeat&&(locked||buyOpen)){toggleBuy();return}
+addEventListener('keydown',e=>{if(rebind){e.preventDefault();const a=rebind;rebind=null;if(e.code!=='Escape'){for(const o in bind)if(bind[o]===e.code)bind[o]=bind[a];bind[a]=e.code;cfgSave()}renderBinds();return}
+ if(e.target.tagName==='INPUT')return;keys[e.code]=1;if(Object.values(bind).includes(e.code))e.preventDefault();
+ if(e.code==bind.buy&&!e.repeat&&(locked||buyOpen)){toggleBuy();return}
  if(buyOpen&&/^Digit[1-4]$/.test(e.code)){buy(+e.key);return}
- if(!locked)return;if(e.code=='KeyR')reload();if(/^Digit[1-3]$/.test(e.code))sw(+e.key-1)});
+ if(!locked)return;if(e.code==bind.reload)reload();['w1','w2','w3'].forEach((a,i)=>{if(e.code===bind[a])sw(i)})});
 addEventListener('keyup',e=>keys[e.code]=0);
 
 // ---------- Сенсорное управление ----------
@@ -529,27 +604,60 @@ function joyMove(t){const r=jb.getBoundingClientRect(),m=r.width/2;let dx=t.clie
  if(l>m){dx*=m/l;dy*=m/l}jk.style.transform=`translate(${dx}px,${dy}px)`;
  const nx=dx/m,ny=-dy/m;if(Math.hypot(nx,ny)<.12){joy.x=joy.y=0}else{joy.x=nx;joy.y=ny}}
 function joyReset(){jid=null;joy.x=joy.y=0;jk.style.transform=''}
-jb.addEventListener('touchstart',e=>{e.preventDefault();if(jid!==null)return;const t=e.changedTouches[0];jid=t.identifier;joyMove(t)},{passive:false});
-$('look').addEventListener('touchstart',e=>{e.preventDefault();for(const t of e.changedTouches)looks[t.identifier]={x:t.clientX,y:t.clientY}},{passive:false});
+jb.addEventListener('touchstart',e=>{if(editing)return;e.preventDefault();if(jid!==null)return;const t=e.changedTouches[0];jid=t.identifier;joyMove(t)},{passive:false});
+$('look').addEventListener('touchstart',e=>{if(editing)return;e.preventDefault();for(const t of e.changedTouches)looks[t.identifier]={x:t.clientX,y:t.clientY}},{passive:false});
 addEventListener('touchmove',e=>{if(!started||buyOpen)return;e.preventDefault();
  for(const t of e.changedTouches){
   if(t.identifier===jid){joyMove(t);continue}
   const l=looks[t.identifier];if(!l)continue;
-  if(!pdead&&locked){const s=.0045*(cur==3&&aim?.35:1);P.yaw-=(t.clientX-l.x)*s;P.pitch=Math.max(-1.5,Math.min(1.5,P.pitch-(t.clientY-l.y)*s))}
+  if(!pdead&&locked){const s=.0045*sens.touch*(cur==3&&aim?.35:1);P.yaw-=(t.clientX-l.x)*s;P.pitch=Math.max(-1.5,Math.min(1.5,P.pitch-(t.clientY-l.y)*s))}
   l.x=t.clientX;l.y=t.clientY}},{passive:false});
 const tEnd=e=>{for(const t of e.changedTouches){if(t.identifier===jid)joyReset();delete looks[t.identifier]}};
 addEventListener('touchend',tEnd);addEventListener('touchcancel',tEnd);
 function tbtn(id,down,up){const b=$(id);
- b.addEventListener('touchstart',e=>{e.preventDefault();b.classList.add('on');down(e)},{passive:false});
+ b.addEventListener('touchstart',e=>{if(editing)return;e.preventDefault();b.classList.add('on');down(e)},{passive:false});
  const end=()=>{b.classList.remove('on');if(up)up()};b.addEventListener('touchend',end);b.addEventListener('touchcancel',end)}
-function tap(id,fn){$(id).addEventListener('touchstart',e=>{e.preventDefault();fn()},{passive:false})}
+function tap(id,fn){$(id).addEventListener('touchstart',e=>{if(editing)return;e.preventDefault();fn()},{passive:false})}
 tbtn('t-fire',e=>{mouseL=1;const t=e.changedTouches[0];looks[t.identifier]={x:t.clientX,y:t.clientY};if(!pdead&&!W[cur].auto)shoot()},()=>{mouseL=0});
-tbtn('t-jump',()=>{keys.Space=1},()=>{keys.Space=0});
+tbtn('t-jump',()=>{keys.__jump=1},()=>{keys.__jump=0});
 tap('t-aim',()=>{aim=aim?0:1;$('t-aim').classList.toggle('on',!!aim)});
-tap('t-crouch',()=>{keys.KeyC=keys.KeyC?0:1;$('t-crouch').classList.toggle('on',!!keys.KeyC)});
+tap('t-crouch',()=>{keys.__crouch=keys.__crouch?0:1;$('t-crouch').classList.toggle('on',!!keys.__crouch)});
 tap('t-rel',()=>{if(!pdead)reload()});
 tap('t-wpn',()=>{if(!pdead)sw((slot+1)%3)});
-tap('t-buy',toggleBuy);
+tap('t-buy',toggleBuy);tap('t-set',()=>openSet());
+
+// ---------- Настройки ----------
+let setOpen=0,rebind=null,editing=0;
+const kn=c=>({Space:'Пробел',ShiftLeft:'Shift',ShiftRight:'Shift (пр.)',ControlLeft:'Ctrl',ControlRight:'Ctrl (пр.)',AltLeft:'Alt',Tab:'Tab'})[c]||c.replace(/^Key|^Digit/,'');
+function renderBinds(){const l=$('bind-list');l.innerHTML='';
+ for(const a in BIND_NAMES){const r=document.createElement('div');r.className='bind-row';r.innerHTML=`<span>${BIND_NAMES[a]}</span>`;
+  const b=document.createElement('button');b.textContent=rebind===a?'нажмите клавишу…':kn(bind[a]);b.onclick=()=>{rebind=rebind===a?null:a;renderBinds()};r.appendChild(b);l.appendChild(r)}
+ updateHint()}
+function updateHint(){document.querySelector('.kb-hint').innerHTML=`${kn(bind.fwd)}${kn(bind.left)}${kn(bind.back)}${kn(bind.right)} — движение · ${kn(bind.jump)} — прыжок · ${kn(bind.walk)} — шаг · ${kn(bind.crouch)} — присесть<br>ЛКМ — огонь · ПКМ — прицел · ${kn(bind.reload)} — перезарядка · ${kn(bind.w1)}/${kn(bind.w2)}/${kn(bind.w3)} — оружие · ${kn(bind.buy)} — магазин · Esc — меню`}
+function syncSet(){const rm=$('r-mouse'),rt=$('r-touch');rm.value=sens.mouse;rt.value=sens.touch;$('v-mouse').textContent=sens.mouse.toFixed(2)+'×';$('v-touch').textContent=sens.touch.toFixed(2)+'×';renderBinds()}
+function openSet(){setOpen=1;$('set').classList.remove('hidden');syncSet()}
+function closeSet(){setOpen=0;rebind=null;$('set').classList.add('hidden');cfgSave()}
+$('btn-settings').onclick=openSet;$('set-close').onclick=closeSet;
+$('r-mouse').oninput=e=>{sens.mouse=+e.target.value;$('v-mouse').textContent=sens.mouse.toFixed(2)+'×'};
+$('r-touch').oninput=e=>{sens.touch=+e.target.value;$('v-touch').textContent=sens.touch.toFixed(2)+'×'};
+$('bind-reset').onclick=()=>{Object.assign(bind,BIND_DEF);cfgSave();renderBinds()};
+function markMap(){document.querySelectorAll('[data-map]').forEach(b=>b.classList.toggle('act',b.dataset.map===selMap))}
+document.querySelectorAll('[data-map]').forEach(b=>b.onclick=()=>{selMap=b.dataset.map;cfgSave();markMap()});
+
+// ---------- Редактор раскладки кнопок ----------
+const TB=['joy','t-fire','t-jump','t-aim','t-rel','t-crouch','t-wpn','t-buy','t-set'];
+function applyPos(){for(const id of TB){const p=tpos[id];if(!p)continue;const el=$(id);el.style.right='auto';el.style.bottom='auto';
+ el.style.left=Math.max(0,Math.min(.95,p[0]))*innerWidth+'px';el.style.top=Math.max(0,Math.min(.9,p[1]))*innerHeight+'px'}}
+addEventListener('resize',applyPos);
+TB.forEach(id=>{const el=$(id);el.addEventListener('pointerdown',e=>{if(!editing)return;e.preventDefault();el.setPointerCapture(e.pointerId);
+ const r=el.getBoundingClientRect(),ox=e.clientX-r.left,oy=e.clientY-r.top;
+ const mv=ev=>{const x=Math.max(0,Math.min(innerWidth-r.width,ev.clientX-ox)),y=Math.max(0,Math.min(innerHeight-r.height,ev.clientY-oy));
+  el.style.right='auto';el.style.bottom='auto';el.style.left=x+'px';el.style.top=y+'px';tpos[id]=[x/innerWidth,y/innerHeight]};
+ const up=()=>{el.removeEventListener('pointermove',mv);el.removeEventListener('pointerup',up);el.removeEventListener('pointercancel',up)};
+ el.addEventListener('pointermove',mv);el.addEventListener('pointerup',up);el.addEventListener('pointercancel',up)})});
+$('btn-edit-layout').onclick=()=>{editing=1;document.body.classList.add('editing')};
+$('ed-done').onclick=()=>{editing=0;document.body.classList.remove('editing');cfgSave()};
+$('ed-reset').onclick=()=>{for(const id of TB){delete tpos[id];const st=$(id).style;['left','top','right','bottom'].forEach(k=>st.removeProperty(k))}cfgSave()};
 
 // ---------- Радар / HUD ----------
 const rx=$('radar').getContext('2d');
@@ -573,7 +681,7 @@ function hud(){
 // ---------- Главный цикл ----------
 let last=performance.now(),bob=0,netTimer=0;
 function loop(){requestAnimationFrame(loop);const now=performance.now(),dt=Math.min(.05,(now-last)/1000);last=now;
- if(locked&&!buyOpen){
+ if(locked&&!buyOpen&&!setOpen){
   if(!pdead){moveP(dt);if(mouseL&&W[cur].auto)shoot()}else{cam.position.y=Math.max(.3,cam.position.y-dt*2);cam.rotation.z=Math.min(1,cam.rotation.z+dt)}
   if(now/1000-lastShot>.25&&kickAcc>0){const d=Math.min(kickAcc,dt*.35);P.pitch-=d;kickAcc-=d}
   if(reloading){relT+=dt;if(!relHalf&&relT>relDur*.5){relHalf=1;click()}
@@ -604,5 +712,5 @@ function loop(){requestAnimationFrame(loop);const now=performance.now(),dt=Math.
  for(let i=fx.length-1;i>=0;i--){const f=fx[i];f.v.y-=9*dt;f.m.position.addScaledVector(f.v,dt);if((f.l-=dt)<=0){sc.remove(f.m);fx.splice(i,1)}}
  for(let i=tr.length-1;i>=0;i--){const t=tr[i];t.l.material.opacity=t.t/.08;if((t.t-=dt)<=0){sc.remove(t.l);t.l.geometry.dispose();tr.splice(i,1)}}
  hm-=dt;dmg=Math.max(0,dmg-dt*1.2);hud();radar();rd.render(sc,cam)}
-startRound();loop();
+loadMap(selMap);markMap();updateHint();applyPos();startRound();loop();
 </script></body></html>
