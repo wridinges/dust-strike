@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru"><head><meta charset="utf-8"><title>Dust Strike Online</title>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><title>Dust Strike Online</title>
 <style>
 *{margin:0;box-sizing:border-box}body{overflow:hidden;background:#000;font-family:Arial,sans-serif;color:#fff;user-select:none}
 canvas#g{display:block}.f{position:fixed;text-shadow:0 0 4px #000;font-weight:bold}
@@ -31,6 +31,37 @@ canvas#g{display:block}.f{position:fixed;text-shadow:0 0 4px #000;font-weight:bo
 
 #buy{display:none;background:#000c}
 #buy button{width:340px;margin:5px;background:#333;border:1px solid #888}#buy button:hover{background:#555}
+
+html,body{height:100%;overscroll-behavior:none;-webkit-touch-callout:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
+#menu{overflow-y:auto;padding:10px;justify-content:safe center}
+.tc-hint{display:none}
+#tc{display:none}
+body.touch.playing #tc{display:block}
+body.touch .kb-hint{display:none}
+body.touch .tc-hint{display:block}
+#look{position:fixed;inset:0;z-index:10;touch-action:none}
+#joy{position:fixed;left:max(24px,env(safe-area-inset-left));bottom:24px;width:130px;height:130px;border-radius:50%;background:#fff2;border:2px solid #fff5;z-index:20;touch-action:none}
+#joyk{position:absolute;left:50%;top:50%;width:56px;height:56px;margin:-28px;border-radius:50%;background:#fff7;pointer-events:none}
+.tb{position:fixed;z-index:20;border-radius:50%;background:#0006;border:2px solid #fff7;color:#fff;font-weight:bold;font-size:12px;line-height:1.15;display:flex;align-items:center;justify-content:center;text-align:center;touch-action:none;text-shadow:0 0 3px #000}
+.tb.on{background:#f59e0bcc;border-color:#fff}
+#t-fire{right:max(24px,env(safe-area-inset-right));bottom:44px;width:92px;height:92px;font-size:15px;background:#dc2626aa}
+#t-jump{right:136px;bottom:30px;width:62px;height:62px}
+#t-aim{right:34px;bottom:150px;width:62px;height:62px}
+#t-rel{right:112px;bottom:112px;width:54px;height:54px}
+#t-crouch{right:178px;bottom:98px;width:54px;height:54px}
+#t-wpn{right:60px;top:8px;width:44px;height:44px}
+#t-buy{right:10px;top:8px;width:44px;height:44px}
+#rot{display:none;position:fixed;inset:0;z-index:100;background:#000e;flex-direction:column;align-items:center;justify-content:center;text-align:center;font-size:22px;padding:20px}
+@media (orientation:portrait){body.touch.playing #rot{display:flex}}
+body.touch #radar{width:100px;height:100px}
+body.touch #hp{left:50%;top:44px;bottom:auto;transform:translateX(-50%);font-size:18px}
+body.touch #ammo{left:50%;right:auto;bottom:6px;transform:translateX(-50%);font-size:16px;text-align:center}
+body.touch #money{left:12px;right:auto;top:118px;font-size:18px}
+body.touch #net-badge{left:12px;bottom:auto;top:150px;font-size:11px}
+body.touch #kf{top:60px;font-size:12px}
+body.touch #score{font-size:13px;padding:4px 8px;white-space:nowrap}
+body.touch #menu h1{font-size:36px}
+body.touch #buy button{width:300px;padding:8px;margin:3px;font-size:16px}
 </style></head><body>
 <canvas id="g"></canvas><div id="scope"></div><div id="dm"></div>
 <canvas id="radar" class="f" width="140" height="140"></canvas>
@@ -38,6 +69,18 @@ canvas#g{display:block}.f{position:fixed;text-shadow:0 0 4px #000;font-weight:bo
 <div class="f" id="hit"></div><div class="f" id="hp"></div><div class="f" id="ammo"></div><div class="f" id="money"></div>
 <div class="f" id="score"></div><div class="f" id="kf"></div><div class="f" id="msg"></div>
 <div id="net-badge" class="hidden">Офлайн</div>
+<div id="rot">📱<br>Поверните телефон горизонтально</div>
+<div id="tc">
+  <div id="look"></div>
+  <div id="joy"><div id="joyk"></div></div>
+  <div class="tb" id="t-fire">ОГОНЬ</div>
+  <div class="tb" id="t-jump">Прыжок</div>
+  <div class="tb" id="t-aim">Прицел</div>
+  <div class="tb" id="t-rel">R</div>
+  <div class="tb" id="t-crouch">Сесть</div>
+  <div class="tb" id="t-wpn">🔫</div>
+  <div class="tb" id="t-buy">$</div>
+</div>
 
 <div id="menu">
   <h1>DUST STRIKE</h1>
@@ -77,12 +120,13 @@ canvas#g{display:block}.f{position:fixed;text-shadow:0 0 4px #000;font-weight:bo
     <button class="m-btn sec back-btn">Назад</button>
   </div>
 
-  <p style="margin-top:10px;opacity:.75;font-size:14px">WASD — движение · Space — прыжок · Shift — шаг · Ctrl/C — присесть<br>ЛКМ — огонь · ПКМ — прицел · R — перезарядка · 1/2/3 — оружие · B — магазин</p>
+  <p class="tc-hint" style="margin-top:10px;opacity:.75;font-size:14px">Левый стик — движение · Касание справа — обзор<br>Кнопки: огонь (можно вести пальцем), прицел, прыжок, присесть, перезарядка, смена оружия, магазин</p>
+  <p class="kb-hint" style="margin-top:10px;opacity:.75;font-size:14px">WASD — движение · Space — прыжок · Shift — шаг · Ctrl/C — присесть<br>ЛКМ — огонь · ПКМ — прицел · R — перезарядка · 1/2/3 — оружие · B — магазин</p>
 </div>
 
 <div id="buy"><h2>Магазин (B — закрыть)</h2><p id="bm" style="margin:8px;font-size:22px;color:#8f8"></p>
 <button onclick="buy(1)">1. AK-47 — $2700</button><button onclick="buy(2)">2. AWP — $4750</button>
-<button onclick="buy(3)">3. Бронежилет — $650</button><button onclick="buy(4)">4. Патроны — $250</button></div>
+<button onclick="buy(3)">3. Бронежилет — $650</button><button onclick="buy(4)">4. Патроны — $250</button><button onclick="toggleBuy()">Закрыть</button></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -164,9 +208,9 @@ const score={ct:0,t:0},keys={};
 function msg(t,ms=2500){$('msg').textContent=t;setTimeout(()=>{if($('msg').textContent==t)$('msg').textContent=''},ms)}
 function kf(t){const d=document.createElement('div');d.textContent=t;$('kf').prepend(d);setTimeout(()=>d.remove(),5000)}
 function moveP(dt){
- const k=keys,f=(k.KeyW?1:0)-(k.KeyS?1:0),s=(k.KeyD?1:0)-(k.KeyA?1:0),walk=k.ShiftLeft||k.ShiftRight;
+ const k=keys,f=Math.max(-1,Math.min(1,(k.KeyW?1:0)-(k.KeyS?1:0)+joy.y)),s=Math.max(-1,Math.min(1,(k.KeyD?1:0)-(k.KeyA?1:0)+joy.x)),walk=k.ShiftLeft||k.ShiftRight;
  P.crouch=!!(k.ControlLeft||k.ControlRight||k.KeyC);
- const sp=(P.crouch?2.2:walk?3.2:6)*(cur==2?1.18:1)*(cur==3&&aim?.6:1),l=Math.hypot(f,s)||1,sn=Math.sin(P.yaw),cs=Math.cos(P.yaw);
+ const sp=(P.crouch?2.2:walk?3.2:6)*(cur==2?1.18:1)*(cur==3&&aim?.6:1),l=Math.max(1,Math.hypot(f,s)),sn=Math.sin(P.yaw),cs=Math.cos(P.yaw);
  const vx=(-sn*f+cs*s)/l*sp,vz=(-cs*f-sn*s)/l*sp,h=P.crouch?1.1:1.8;
  const nx=P.x+vx*dt;if(!blocked(nx,P.z,P.y,.4,h))P.x=nx;const nz=P.z+vz*dt;if(!blocked(P.x,nz,P.y,.4,h))P.z=nz;
  P.spd=(f||s)?sp:0;
@@ -366,8 +410,9 @@ function launchGame(mode){
  }
  updateNetBadge();
  ac();
+ started=1;document.body.classList.add('playing');
  $('menu').style.display='none';
- if(document.body.requestPointerLock)document.body.requestPointerLock();
+ if(isTouch){locked=1;goFull()}else if(document.body.requestPointerLock)document.body.requestPointerLock();
 }
 
 $('btn-bots').onclick=()=>launchGame('bots');
@@ -445,7 +490,7 @@ function reload(){const w=W[cur];if(w.knife||reloading||ammo[cur]>=w.mag||res[cu
 
 // ---------- Магазин ----------
 function toggleBuy(){buyOpen=!buyOpen;$('buy').style.display=buyOpen?'flex':'none';$('bm').textContent='Деньги: $'+P.money;
- if(buyOpen)document.exitPointerLock();else document.body.requestPointerLock()}
+ if(!isTouch){if(buyOpen)document.exitPointerLock();else document.body.requestPointerLock()}}
 function buy(n){const c=[0,2700,4750,650,250][n];if(P.money<c){tone(150,.2,.3,'square');return}P.money-=c;tone(700,.1,.25);
  if(n==1){prim=0;ammo[0]=30;res[0]=90}if(n==2){prim=3;ammo[3]=5;res[3]=20}if(n==3)P.ar=100;if(n==4){res[0]+=60;res[1]+=24;res[3]+=10}
  sw(slot);$('bm').textContent='Деньги: $'+P.money}
@@ -456,6 +501,7 @@ function startRound(){ending=0;pdead=0;Object.assign(P,{x:(Math.random()-.5)*8,z
 
 // ---------- Ввод ----------
 document.addEventListener('pointerlockchange',()=>{
+ if(isTouch)return;
  locked=document.pointerLockElement===document.body;
  $('menu').style.display=(locked||buyOpen)?'none':'flex';
 });
@@ -469,6 +515,41 @@ addEventListener('keydown',e=>{keys[e.code]=1;if(['Space','ControlLeft'].include
  if(buyOpen&&/^Digit[1-4]$/.test(e.code)){buy(+e.key);return}
  if(!locked)return;if(e.code=='KeyR')reload();if(/^Digit[1-3]$/.test(e.code))sw(+e.key-1)});
 addEventListener('keyup',e=>keys[e.code]=0);
+
+// ---------- Сенсорное управление ----------
+let isTouch=0,started=0;
+const joy={x:0,y:0},looks={};let jid=null;
+function enableTouch(){if(isTouch)return;isTouch=1;document.body.classList.add('touch')}
+if(matchMedia('(pointer:coarse)').matches)enableTouch();
+addEventListener('touchstart',enableTouch,{passive:true,once:true});
+function goFull(){const el=document.documentElement,rq=el.requestFullscreen||el.webkitRequestFullscreen;if(!rq)return;
+ try{const p=rq.call(el),lk=()=>{try{screen.orientation.lock('landscape').catch(()=>{})}catch(e){}};if(p&&p.then)p.then(lk).catch(()=>{});else lk()}catch(e){}}
+const jb=$('joy'),jk=$('joyk');
+function joyMove(t){const r=jb.getBoundingClientRect(),m=r.width/2;let dx=t.clientX-(r.left+m),dy=t.clientY-(r.top+r.height/2);const l=Math.hypot(dx,dy);
+ if(l>m){dx*=m/l;dy*=m/l}jk.style.transform=`translate(${dx}px,${dy}px)`;
+ const nx=dx/m,ny=-dy/m;if(Math.hypot(nx,ny)<.12){joy.x=joy.y=0}else{joy.x=nx;joy.y=ny}}
+function joyReset(){jid=null;joy.x=joy.y=0;jk.style.transform=''}
+jb.addEventListener('touchstart',e=>{e.preventDefault();if(jid!==null)return;const t=e.changedTouches[0];jid=t.identifier;joyMove(t)},{passive:false});
+$('look').addEventListener('touchstart',e=>{e.preventDefault();for(const t of e.changedTouches)looks[t.identifier]={x:t.clientX,y:t.clientY}},{passive:false});
+addEventListener('touchmove',e=>{if(!started||buyOpen)return;e.preventDefault();
+ for(const t of e.changedTouches){
+  if(t.identifier===jid){joyMove(t);continue}
+  const l=looks[t.identifier];if(!l)continue;
+  if(!pdead&&locked){const s=.0045*(cur==3&&aim?.35:1);P.yaw-=(t.clientX-l.x)*s;P.pitch=Math.max(-1.5,Math.min(1.5,P.pitch-(t.clientY-l.y)*s))}
+  l.x=t.clientX;l.y=t.clientY}},{passive:false});
+const tEnd=e=>{for(const t of e.changedTouches){if(t.identifier===jid)joyReset();delete looks[t.identifier]}};
+addEventListener('touchend',tEnd);addEventListener('touchcancel',tEnd);
+function tbtn(id,down,up){const b=$(id);
+ b.addEventListener('touchstart',e=>{e.preventDefault();b.classList.add('on');down(e)},{passive:false});
+ const end=()=>{b.classList.remove('on');if(up)up()};b.addEventListener('touchend',end);b.addEventListener('touchcancel',end)}
+function tap(id,fn){$(id).addEventListener('touchstart',e=>{e.preventDefault();fn()},{passive:false})}
+tbtn('t-fire',e=>{mouseL=1;const t=e.changedTouches[0];looks[t.identifier]={x:t.clientX,y:t.clientY};if(!pdead&&!W[cur].auto)shoot()},()=>{mouseL=0});
+tbtn('t-jump',()=>{keys.Space=1},()=>{keys.Space=0});
+tap('t-aim',()=>{aim=aim?0:1;$('t-aim').classList.toggle('on',!!aim)});
+tap('t-crouch',()=>{keys.KeyC=keys.KeyC?0:1;$('t-crouch').classList.toggle('on',!!keys.KeyC)});
+tap('t-rel',()=>{if(!pdead)reload()});
+tap('t-wpn',()=>{if(!pdead)sw((slot+1)%3)});
+tap('t-buy',toggleBuy);
 
 // ---------- Радар / HUD ----------
 const rx=$('radar').getContext('2d');
